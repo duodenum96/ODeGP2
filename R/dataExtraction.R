@@ -1,5 +1,4 @@
-extractData <- function(filename, errorbars=FALSE) {
-
+extractData <- function(filename, errorbars = FALSE) {
   #' Get data from a csv file
   #'
   #' This function retrieves and pre-processes the dataset from the given file into a suitable format for ODeGP.
@@ -15,9 +14,8 @@ extractData <- function(filename, errorbars=FALSE) {
   #convert nans (non-sampled values) to NAs (missing values)
   df[is.nan(df)] <- NA
 
-  if(errorbars) {
-
-    d <- list("X"=df$X, "Y"=df$Y, "S"=df$S)
+  if (errorbars) {
+    d <- list("X" = df$X, "Y" = df$Y, "S" = df$S)
     return(d)
   }
 
@@ -28,23 +26,22 @@ extractData <- function(filename, errorbars=FALSE) {
   nreps <- length(df) - 1
 
   #getting the average and the error bars from replicates
-  avg <- apply(df[,-1], MARGIN = 1, FUN = mean, na.rm = TRUE)
-  err <- apply(df[,-1], MARGIN = 1, FUN = sd, na.rm = TRUE)
+  avg <- apply(df[, -1], MARGIN = 1, FUN = mean, na.rm = TRUE)
+  err <- apply(df[, -1], MARGIN = 1, FUN = sd, na.rm = TRUE)
 
   avg[is.nan(avg)] <- NA #convert nans in avg to NAs
-  err <- err*(sqrt(nreps-1)/sqrt(nreps)) #fix sample/population value
+  err <- err * (sqrt(nreps - 1) / sqrt(nreps)) #fix sample/population value
 
-  d <- list("X"=df$Time, "Y"=avg, "S"=err)
+  d <- list("X" = df$Time, "Y" = avg, "S" = err)
 
   save_df <- data.frame(d$X, d$Y, d$S)
-  names(save_df) <- c("X","Y","S")
-  write.csv(x=save_df, file="RawData.csv")
+  names(save_df) <- c("X", "Y", "S")
+  write.csv(x = save_df, file = "RawData.csv")
 
   return(d)
 }
 
 plotReplicates <- function(df) {
-
   nreps <- length(df) - 1
   interval <- df$Time[2] - df$Time[1]
   missing_times <- c()
@@ -54,18 +51,26 @@ plotReplicates <- function(df) {
   p <- ggplot()
   col_names <- colnames(df)
 
-  for(i in 2:length(col_names)) {
-
+  for (i in 2:length(col_names)) {
     nth <- df[, col_names[i]]
     crt_df <- data.frame(df$Time, nth)
     names(crt_df) <- c("Time", "Replicate")
 
-    p <- p + geom_point(data=na.omit(crt_df), aes(x=Time, y=Replicate),
-                        size=2, colour="black") +
-             geom_line(data=na.omit(crt_df), aes(x=Time, y=Replicate),
-                       size = 0.81, colour = hue_pal()(nreps)[i-1])
+    p <- p +
+      geom_point(
+        data = na.omit(crt_df),
+        aes(x = Time, y = Replicate),
+        size = 2,
+        colour = "black"
+      ) +
+      geom_line(
+        data = na.omit(crt_df),
+        aes(x = Time, y = Replicate),
+        size = 0.81,
+        colour = hue_pal()(nreps)[i - 1]
+      )
 
-    missing_times <- c(missing_times, crt_df[is.na(crt_df$Replicate),]$Time)
+    missing_times <- c(missing_times, crt_df[is.na(crt_df$Replicate), ]$Time)
   }
 
   #plotting rectanges over the missing time points
@@ -73,24 +78,35 @@ plotReplicates <- function(df) {
   missing_times <- unique(missing_times)
   num_miss <- length(missing_times)
 
+  miss_df <- data.frame(
+    xmin = missing_times - rep(0.5 * interval, num_miss),
+    xmax = missing_times + rep(0.5 * interval, num_miss),
+    ymin = rep(-Inf, num_miss),
+    ymax = rep(Inf, num_miss)
+  )
 
-  miss_df <- data.frame(xmin = missing_times - rep(0.5*interval, num_miss),
-                        xmax = missing_times + rep(0.5*interval, num_miss),
-                        ymin = rep(-Inf, num_miss), ymax = rep(Inf, num_miss))
+  p <- p +
+    geom_rect(
+      data = miss_df,
+      aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+      alpha = 2 / 5,
+      fill = "gray"
+    )
 
-  p <- p + geom_rect(data=miss_df, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
-                     alpha = 2/5, fill="gray")
-
-  p <- p + theme_bw() +
-    xlab('Time (hrs)')+
+  p <- p +
+    theme_bw() +
+    xlab('Time (hrs)') +
     ylab('Arbitrary units') +
-    theme(axis.line.x = element_line(color="black", linewidth = 0.5),
-          axis.line.y = element_line(color="black", linewidth = 0.5),
-          axis.text=element_text(size=20),
-          axis.title=element_text(size=30)) +
+    theme(
+      axis.line.x = element_line(color = "black", linewidth = 0.5),
+      axis.line.y = element_line(color = "black", linewidth = 0.5),
+      axis.text = element_text(size = 20),
+      axis.title = element_text(size = 30)
+    ) +
     theme(legend.position = "none")
   print(p)
-
 }
 
-is.nan.data.frame <- function(x) {do.call(cbind, lapply(x, is.nan))}
+is.nan.data.frame <- function(x) {
+  do.call(cbind, lapply(x, is.nan))
+}
