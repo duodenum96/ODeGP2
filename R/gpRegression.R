@@ -69,7 +69,7 @@ marginalLikelihood <- function(params, dataset, kernel, print_terms = FALSE) {
   n <- length(Y)
 
   term1 <- t(Y) %*% calcInverse(cov_mat) %*% Y
-  term2 <- log(det(cov_mat))
+  term2 <- unlist(determinant(cov_mat, logarithm = T))[[1]]
 
   if (print_terms) {
     cat(kernel, "datafit term: ", -0.5 * term1, "\n")
