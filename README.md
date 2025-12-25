@@ -1,5 +1,5 @@
 
-# ODeGP
+# ODeGP2
 
 <!-- badges: start -->
 <!-- badges: end -->
@@ -7,6 +7,8 @@
 **O**scillation **De**tection with **G**aussian **P**rocesses
 
 An R package for detecting oscillations, described in detail at [https://doi.org/10.1093/bioinformatics/btad602](https://doi.org/10.1093/bioinformatics/btad602).
+
+This package is forked from [https://github.com/Shaonlab/ODeGP](https://github.com/Shaonlab/ODeGP/tree/main) to make some customizations. 
 
 ## Installation
 
