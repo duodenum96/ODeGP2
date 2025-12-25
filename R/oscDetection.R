@@ -4,7 +4,9 @@ oscOrNot <- function(
   detrend = TRUE,
   nonstat = TRUE,
   plotting = FALSE,
-  Q = 1
+  Q = 1,
+  optim_control = NULL,
+  parallel = F
 ) {
   #' Oscillatory or not?
   #'
@@ -45,7 +47,14 @@ oscOrNot <- function(
   }
 
   #fitting the models and comparing the lls
-  bayesFactor <- kernelComparison(d, altKern, plotting, Q)
+  bayesFactor <- kernelComparison(
+    d,
+    altKern,
+    plotting,
+    Q,
+    optim_control = optim_control,
+    parallel = parallel
+  )
 
   #decision on oscillatory or not
   osc.or.not <- modelSelection(bayesFactor, threshold)
@@ -60,16 +69,36 @@ oscOrNot <- function(
   return(bayesFactor)
 }
 
-kernelComparison <- function(d, altKern, plotting = FALSE, Q = 1) {
+kernelComparison <- function(
+  d,
+  altKern,
+  plotting = FALSE,
+  Q = 1,
+  optim_control = NULL,
+  parallel = F
+) {
   nulKern <- "diagonal"
   altComponents <- Q #this is Q
 
   #null hypothesis fitting
-  nulResult <- getHyperparameters(d, nulKern)
+  nulResult <- getHyperparameters(
+    d,
+    nulKern,
+    # Q = Q,
+    optim_control = optim_control,
+    parallel = parallel
+  )
   nulInv <- getPosterior(d, nulResult, nulKern, FALSE)
 
   #alternate hypothesis fitting
-  altResult <- getHyperparameters(d, altKern, altComponents)
+  altResult <- getHyperparameters(
+    d,
+    altKern,
+    altComponents,
+    # Q = Q,
+    optim_control = optim_control,
+    parallel = parallel
+  )
   altInv <- getPosterior(d, altResult, altKern, plotting, altComponents)
   cat("==================================================\n")
   detectTimePeriod(d, altResult, altKern, altInv)

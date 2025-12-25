@@ -1,3 +1,43 @@
+get_optim_control <- function(optim_control, parallel, b, verbose) {
+  if (is.null(optim_control) && parallel) {
+    print("Using parallelism...")
+    optim_control <- DEoptim.control(
+      NP = 10 * length(b$lower),
+      itermax = b$itrs,
+      strategy = 2,
+      F = 1.2,
+      CR = 1,
+      trace = verbose,
+      parallelType = "auto",
+      packages = c(),
+      parVar = list(
+        "marginalLikelihood",
+        "covarianceMatrix",
+        "diagonalFunc",
+        "square",
+        "calcInverse",
+        "stationaryFunc",
+        "stationary.Q",
+        "nonstationaryFunc",
+        "nonstationary.Q",
+        "nonstationaryHypVals",
+        "nonstationaryHypForm"
+      )
+    )
+  } else if (is.null(optim_control) && !parallel) {
+    optim_control <- DEoptim.control(
+      NP = 10 * length(b$lower),
+      itermax = b$itrs,
+      strategy = 2,
+      F = 1.2,
+      CR = 1,
+      trace = verbose
+    )
+  }
+  return(optim_control)
+}
+
+
 covarianceMatrix <- function(params, X1, X2, S, kernel) {
   m <- length(X1)
   n <- length(X2)
@@ -45,7 +85,13 @@ negativeMLL <- function(params, dataset, kernel) {
   return(-1 * marginalLikelihood(params, dataset, kernel))
 }
 
-getHyperparameters <- function(dataset, kernel, Q = NULL) {
+getHyperparameters <- function(
+  dataset,
+  kernel,
+  Q = NULL,
+  optim_control = NULL,
+  parallel = F
+) {
   fn.val <- NULL
   res <- NULL
   restarts <- 1
@@ -53,25 +99,62 @@ getHyperparameters <- function(dataset, kernel, Q = NULL) {
   kernelBounds <- paste(kernel, "Bounds", sep = "")
   b <- get(kernelBounds)(dataset, Q)
 
-  verbose <- as.integer(b$itrs / 5)
+  verbose <- as.integer(b$itrs / 40)
   if (kernel == "diagonal") {
     verbose <- FALSE
   }
   set.seed(29) #for reproducibility
+
+  pkg_env <- asNamespace("ODeGP2")
+  all_objects <- ls(envir = pkg_env)
+
+  # optim_control <- get_optim_control(optim_control, parallel, b, verbose)
+
+  if (is.null(optim_control) && parallel) {
+    print("Using parallelism...")
+    optim_control <- DEoptim.control(
+      NP = 10 * length(b$lower),
+      itermax = b$itrs,
+      strategy = 2,
+      F = 1.2,
+      CR = 1,
+      trace = verbose,
+      parallelType = "auto",
+      # packages = c("ODeGP2"),
+      # foreachArgs = list(.export = ls(envir = parent.env(environment()))),
+      parVar = all_objects,
+
+      # parVar = list(
+      #   "marginalLikelihood",
+      #   "covarianceMatrix",
+      #   "diagonalFunc",
+      #   "square",
+      #   "calcInverse",
+      #   "stationaryFunc",
+      #   "stationary.Q",
+      #   "nonstationaryFunc",
+      #   "nonstationary.Q",
+      #   "nonstationaryHypVals",
+      #   "nonstationaryHypForm"
+      # )
+    )
+  } else if (is.null(optim_control) && !parallel) {
+    optim_control <- DEoptim.control(
+      NP = 10 * length(b$lower),
+      itermax = b$itrs,
+      strategy = 2,
+      F = 1.2,
+      CR = 1,
+      trace = verbose
+    )
+  }
 
   for (i in 1:restarts) {
     outDEoptim <- DEoptim(
       negativeMLL,
       b$lower,
       b$upper,
-      DEoptim.control(
-        NP = 10 * length(b$lower),
-        itermax = b$itrs,
-        strategy = 2,
-        F = 1.2,
-        CR = 1,
-        trace = verbose
-      ),
+      optim_control,
       dataset = dataset,
       kernel = kernel
     )

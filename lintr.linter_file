@@ -11,5 +11,6 @@ linters: linters_with_defaults(
    single_quotes_linter  = NULL,
    exclusions = list("."),
    indentation_linter = NULL,
-   object_name_linter = NULL
+   object_name_linter = NULL,
+   return_linter = NULL,
 )
